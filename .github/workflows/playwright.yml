@@ -16,28 +16,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Cache Docker layers
-        uses: actions/cache@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
+          node-version: '18'
 
-      - name: Build Docker image
-        run: docker build -t my-node-app .
+      - name: Install dependencies
+        run: npm install
 
-      - name: Run Docker container
-        run: docker run -d -p 3000:3000 --name my-node-app my-node-app
-
-      - name: Check Docker container status
-        run: docker ps -a
-
-      - name: Check Docker logs
-        run: docker logs my-node-app
+      - name: Start server
+        run: |
+          echo "Starting server..."
+          npm start &
+          echo $! > server.pid
+          sleep 10
+        env:
+          PORT: 3000
 
       - name: Wait for server to be ready
         run: |
@@ -51,31 +45,10 @@ jobs:
             sleep 5
           done
           echo "Server did not start in time"
-          docker logs my-node-app
           exit 1
 
-      - name: Check Node.js version
-        run: docker exec my-node-app node -v
-
-      - name: Check npm version
-        run: docker exec my-node-app npm -v
-
-      - name: List installed npm packages
-        run: docker exec my-node-app npm ls
-
-      - name: Check Playwright installation
-        run: docker exec my-node-app npx playwright --version
-
-      - name: Check Playwright test command
-        run: docker exec my-node-app sh -c "npx playwright test --list"
-
-      - name: Check Playwright config
-        run: docker exec my-node-app cat playwright.config.ts
-
       - name: Run Playwright tests
-        run: |
-          echo "Running Playwright tests..."
-          docker exec my-node-app sh -c "npx playwright test"
+        run: npx playwright test
         env:
           SAUCE_USERNAME: ${{ secrets.SAUCE_USERNAME }}
           SAUCE_ACCESS_KEY: ${{ secrets.SAUCE_ACCESS_KEY }}
@@ -84,11 +57,8 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: playwright-results
-          path: /usr/src/app/playwright-report
+          path: playwright-report
 
-      - name: Stop and remove Docker container
+      - name: Stop server
         if: always()
-        run: |
-          echo "Stopping and removing Docker container..."
-          docker stop my-node-app || true
-          docker rm my-node-app || true
+        run: kill $(cat server.pid)

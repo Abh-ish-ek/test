@@ -49,17 +49,22 @@ jobs:
           exit 1
 
       - name: Run Playwright tests
+        run: |
+          echo "Running Playwright tests..."
+          docker exec my-node-app sh -c "npx playwright test"
         env:
           SAUCE_USERNAME: ${{ secrets.SAUCE_USERNAME }}
           SAUCE_ACCESS_KEY: ${{ secrets.SAUCE_ACCESS_KEY }}
-        run: docker exec my-node-app npx playwright test
 
       - name: Upload Playwright results
         uses: actions/upload-artifact@v3
         with:
           name: playwright-results
-          path: playwright-report
+          path: /usr/src/app/playwright-report
 
       - name: Stop and remove Docker container
         if: always()
-        run: docker stop my-node-app && docker rm my-node-app
+        run: |
+          echo "Stopping and removing Docker container..."
+          docker stop my-node-app
+          docker rm my-node-app

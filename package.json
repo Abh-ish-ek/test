@@ -1,6 +1,12 @@
 {
+  "name": "your-app-name",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
   "dependencies": {
-    "express": "^4.19.2",
-    "playwright": "^1.45.3"
+    "express": "^4.17.1"
   }
 }

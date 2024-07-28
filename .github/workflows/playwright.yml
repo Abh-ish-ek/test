@@ -12,22 +12,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      web:
-        image: node:16
-        env:
-          PORT: 3000
-        ports:
-          - 3000:3000
-        options: >-
-          --health-cmd="curl --fail http://localhost:3000 || exit 1"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-        volumes:
-          - .:/app
-        
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -40,17 +24,21 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Wait for web service to be healthy
+      - name: Start server
+        run: npm start &
+        env:
+          PORT: 3000
+
+      - name: Wait for server to be ready
         run: |
-          echo "Waiting for web service to be healthy..."
-          timeout 120s bash -c "until curl -s http://localhost:3000; do echo waiting for app; sleep 5; done"
+          echo "Waiting for server to be ready..."
+          timeout 60s bash -c "until curl -s http://localhost:3000; do echo waiting for app; sleep 5; done"
 
       - name: Run Playwright tests
         env:
           SAUCE_USERNAME: ${{ secrets.SAUCE_USERNAME }}
           SAUCE_ACCESS_KEY: ${{ secrets.SAUCE_ACCESS_KEY }}
-        run: |
-          npx playwright test
+        run: npx playwright test
 
       - name: Upload Playwright results
         uses: actions/upload-artifact@v2

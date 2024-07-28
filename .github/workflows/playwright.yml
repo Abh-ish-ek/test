@@ -14,25 +14,36 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: '20'
 
       - name: Install dependencies
         run: npm install
 
       - name: Start server
-        run: npm start &
+        run: |
+          npm start &
+          echo $! > server.pid
         env:
           PORT: 3000
 
       - name: Wait for server to be ready
         run: |
           echo "Waiting for server to be ready..."
-          timeout 60s bash -c "until curl -s http://localhost:3000; do echo waiting for app; sleep 5; done"
+          for i in {1..30}; do
+            if curl -s http://localhost:3000; then
+              echo "Server is up!"
+              exit 0
+            fi
+            echo "Waiting..."
+            sleep 5
+          done
+          echo "Server did not start in time"
+          exit 1
 
       - name: Run Playwright tests
         env:
@@ -41,7 +52,11 @@ jobs:
         run: npx playwright test
 
       - name: Upload Playwright results
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: playwright-results
           path: playwright-report
+
+      - name: Stop server
+        if: always()
+        run: kill $(cat server.pid)

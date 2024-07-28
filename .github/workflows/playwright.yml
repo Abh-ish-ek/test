@@ -16,22 +16,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
         with:
-          node-version: '18'
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
 
-      - name: Install dependencies
-        run: npm install
+      - name: Build Docker image
+        run: docker build -t my-node-app .
 
-      - name: Start server
-        run: |
-          echo "Starting server..."
-          npm start &
-          echo $! > server.pid
-          sleep 10
-        env:
-          PORT: 3000
+      - name: Run Docker container
+        run: docker run -d -p 3000:3000 --name my-node-app my-node-app
 
       - name: Wait for server to be ready
         run: |
@@ -45,15 +45,14 @@ jobs:
             sleep 5
           done
           echo "Server did not start in time"
-          echo "Server logs:"
-          cat server.pid
+          docker logs my-node-app
           exit 1
 
       - name: Run Playwright tests
         env:
           SAUCE_USERNAME: ${{ secrets.SAUCE_USERNAME }}
           SAUCE_ACCESS_KEY: ${{ secrets.SAUCE_ACCESS_KEY }}
-        run: npx playwright test
+        run: docker exec my-node-app npx playwright test
 
       - name: Upload Playwright results
         uses: actions/upload-artifact@v3
@@ -61,9 +60,6 @@ jobs:
           name: playwright-results
           path: playwright-report
 
-      - name: Stop server
+      - name: Stop and remove Docker container
         if: always()
-        run: |
-          echo "Stopping server..."
-          kill $(cat server.pid)
-          rm server.pid
+        run: docker stop my-node-app && docker rm my-node-app

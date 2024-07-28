@@ -1,0 +1,59 @@
+name: Playwright Tests with Sauce Labs
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      web:
+        image: node:16
+        env:
+          PORT: 3000
+        ports:
+          - 3000:3000
+        options: >-
+          --health-cmd="curl --fail http://localhost:3000 || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+        volumes:
+          - .:/app
+        command: sh -c "cd /app && npm install && npm start"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Wait for web service to be healthy
+        run: timeout 120s bash -c "until curl -s http://localhost:3000; do echo waiting for app; sleep 5; done"
+
+      - name: Run Playwright tests on Sauce Labs
+        env:
+          SAUCE_USERNAME: ${{ secrets.SAUCE_USERNAME }}
+          SAUCE_ACCESS_KEY: ${{ secrets.SAUCE_ACCESS_KEY }}
+        run: |
+          npx playwright test --project=chromium --reporter=dot
+          npx playwright test --project=firefox --reporter=dot
+          npx playwright test --project=webkit --reporter=dot
+
+      - name: Upload Playwright results
+        uses: actions/upload-artifact@v2
+        with:
+          name: playwright-results
+          path: playwright-report

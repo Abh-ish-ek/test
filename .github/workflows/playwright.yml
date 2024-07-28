@@ -19,15 +19,17 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: '18'
 
       - name: Install dependencies
         run: npm install
 
       - name: Start server
         run: |
+          echo "Starting server..."
           npm start &
           echo $! > server.pid
+          sleep 5
         env:
           PORT: 3000
 
@@ -35,11 +37,11 @@ jobs:
         run: |
           echo "Waiting for server to be ready..."
           for i in {1..30}; do
-            if curl -s http://localhost:3000; then
+            if curl -s http://localhost:3000 > /dev/null; then
               echo "Server is up!"
               exit 0
             fi
-            echo "Waiting..."
+            echo "Waiting... ($i)"
             sleep 5
           done
           echo "Server did not start in time"
@@ -59,4 +61,7 @@ jobs:
 
       - name: Stop server
         if: always()
-        run: kill $(cat server.pid)
+        run: |
+          echo "Stopping server..."
+          kill $(cat server.pid)
+          rm server.pid

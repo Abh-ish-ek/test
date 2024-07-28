@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "express": "^4.17.1",
-    "@playwright/test": "^1.22.0" 
+    "@playwright/test": "^1.22.0",
+    "dotenv": "^16.0.0"
   }
 }

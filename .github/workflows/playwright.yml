@@ -48,6 +48,27 @@ jobs:
           docker logs my-node-app
           exit 1
 
+      - name: Check Docker container status
+        run: docker ps -a
+
+      - name: Check Node.js version
+        run: docker exec my-node-app node -v
+
+      - name: Check npm version
+        run: docker exec my-node-app npm -v
+
+      - name: List installed npm packages
+        run: docker exec my-node-app npm ls
+
+      - name: Check Playwright installation
+        run: docker exec my-node-app npx playwright --version
+
+      - name: Check Playwright test command
+        run: docker exec my-node-app sh -c "npx playwright test --list"
+
+      - name: Check Playwright config
+        run: docker exec my-node-app cat playwright.config.ts
+
       - name: Run Playwright tests
         run: |
           echo "Running Playwright tests..."

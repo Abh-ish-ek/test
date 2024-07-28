@@ -33,6 +33,12 @@ jobs:
       - name: Run Docker container
         run: docker run -d -p 3000:3000 --name my-node-app my-node-app
 
+      - name: Check Docker container status
+        run: docker ps -a
+
+      - name: Check Docker logs
+        run: docker logs my-node-app
+
       - name: Wait for server to be ready
         run: |
           echo "Waiting for server to be ready..."
@@ -47,9 +53,6 @@ jobs:
           echo "Server did not start in time"
           docker logs my-node-app
           exit 1
-
-      - name: Check Docker container status
-        run: docker ps -a
 
       - name: Check Node.js version
         run: docker exec my-node-app node -v
@@ -87,5 +90,5 @@ jobs:
         if: always()
         run: |
           echo "Stopping and removing Docker container..."
-          docker stop my-node-app
-          docker rm my-node-app
+          docker stop my-node-app || true
+          docker rm my-node-app || true
